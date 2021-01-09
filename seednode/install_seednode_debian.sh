@@ -65,7 +65,6 @@ if [ "${BITCOIN_INSTALL}" = true ];then
 	echo "[*] Creating Bitcoin homedir"
 	sudo -H -i -u "${ROOT_USER}" mkdir -p "${BITCOIN_HOME}"
 	sudo -H -i -u "${ROOT_USER}" chown "${BITCOIN_USER}":"${BITCOIN_GROUP}" ${BITCOIN_HOME}
-	sudo -H -i -u "${BITCOIN_USER}" ln -s . .bitcoin
 
 	echo "[*] Installing Bitcoin configuration"
 	sudo -H -i -u "${ROOT_USER}" install -c -o "${BITCOIN_USER}" -g "${BITCOIN_GROUP}" -m 644 "${ROOT_HOME}/${BISQ_REPO_NAME}/seednode/bitcoin.conf" "${BITCOIN_HOME}/bitcoin.conf"
