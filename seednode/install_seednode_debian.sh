@@ -50,15 +50,6 @@ TOR_HOME=/etc/tor
 
 #####
 
-echo "[*] Updating apt repo sources"
-#sudo -H -i -u "${ROOT_USER}" DEBIAN_FRONTEND=noninteractive apt-get update -q
-
-echo "[*] Upgrading OS packages"
-#sudo -H -i -u "${ROOT_USER}" DEBIAN_FRONTEND=noninteractive apt-get upgrade -qq -y
-
-echo "[*] Installing base packages"
-#sudo -H -i -u "${ROOT_USER}" DEBIAN_FRONTEND=noninteractive apt-get install -qq -y ${ROOT_PKG}
-
 echo "[*] Cloning Bisq repo"
 sudo -H -i -u "${ROOT_USER}" git config --global advice.detachedHead false
 sudo -H -i -u "${ROOT_USER}" git clone --branch "${BISQ_REPO_TAG}" "${BISQ_REPO_URL}" "${ROOT_HOME}/${BISQ_REPO_NAME}"
@@ -71,26 +62,10 @@ sudo -H -i -u "${ROOT_USER}" install -c -m 644 "${ROOT_HOME}/${BISQ_REPO_NAME}/s
 
 if [ "${BITCOIN_INSTALL}" = true ];then
 
-	echo "[*] Creating Bitcoin user with Tor access"
-	#sudo -H -i -u "${ROOT_USER}" useradd -d "${BITCOIN_HOME}" -G "${TOR_GROUP}" "${BITCOIN_USER}"
-
-	echo "[*] Installing Bitcoin build dependencies"
-	#sudo -H -i -u "${ROOT_USER}" DEBIAN_FRONTEND=noninteractive apt-get install -qq -y ${BITCOIN_PKG}
-
 	echo "[*] Creating Bitcoin homedir"
 	sudo -H -i -u "${ROOT_USER}" mkdir -p "${BITCOIN_HOME}"
 	sudo -H -i -u "${ROOT_USER}" chown "${BITCOIN_USER}":"${BITCOIN_GROUP}" ${BITCOIN_HOME}
 	sudo -H -i -u "${BITCOIN_USER}" ln -s . .bitcoin
-
-	echo "[*] Cloning Bitcoin repo"
-	#sudo -H -i -u "${BITCOIN_USER}" git config --global advice.detachedHead false
-	#sudo -H -i -u "${BITCOIN_USER}" git clone --branch "${BITCOIN_REPO_TAG}" "${BITCOIN_REPO_URL}" "${BITCOIN_HOME}/${BITCOIN_REPO_NAME}"
-
-	echo "[*] Building Bitcoin from source"
-	#sudo -H -i -u "${BITCOIN_USER}" sh -c "cd ${BITCOIN_REPO_NAME} && ./autogen.sh --quiet && ./configure --quiet --disable-wallet --with-incompatible-bdb && make -j9"
-
-	echo "[*] Installing Bitcoin into OS"
-	#sudo -H -i -u "${ROOT_USER}" sh -c "cd ${BITCOIN_HOME}/${BITCOIN_REPO_NAME} && make install >/dev/null"
 
 	echo "[*] Installing Bitcoin configuration"
 	sudo -H -i -u "${ROOT_USER}" install -c -o "${BITCOIN_USER}" -g "${BITCOIN_GROUP}" -m 644 "${ROOT_HOME}/${BISQ_REPO_NAME}/seednode/bitcoin.conf" "${BITCOIN_HOME}/bitcoin.conf"
