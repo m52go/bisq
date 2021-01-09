@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-echo "[*] Bisq Seednode installation script"
+echo "[*] Bisq Bitcoin node installation script"
 
 ##### change paths if necessary for your system
 
@@ -13,10 +13,9 @@ ROOT_HOME=/root
 SYSTEMD_SERVICE_HOME=/etc/systemd/system
 SYSTEMD_ENV_HOME=/etc/default
 
-BISQ_REPO_URL=https://github.com/bisq-network/bisq
+BISQ_REPO_URL=https://github.com/m52go/bisq
 BISQ_REPO_NAME=bisq
-BISQ_REPO_TAG=master
-BISQ_LATEST_RELEASE=$(curl -s https://api.github.com/repos/bisq-network/bisq/releases/latest|grep tag_name|head -1|cut -d '"' -f4)
+BISQ_REPO_TAG=bitcoin-node-install
 BISQ_HOME=/bisq
 BISQ_USER=bisq
 
@@ -59,10 +58,6 @@ sudo -H -i -u "${ROOT_USER}" DEBIAN_FRONTEND=noninteractive apt-get upgrade -qq 
 
 echo "[*] Installing base packages"
 sudo -H -i -u "${ROOT_USER}" DEBIAN_FRONTEND=noninteractive apt-get install -qq -y ${ROOT_PKG}
-
-echo "[*] Installing Git LFS"
-sudo -H -i -u "${ROOT_USER}" apt-get install git-lfs
-sudo -H -i -u "${ROOT_USER}" git lfs install
 
 echo "[*] Cloning Bisq repo"
 sudo -H -i -u "${ROOT_USER}" git config --global advice.detachedHead false
@@ -123,42 +118,9 @@ echo "[*] Moving Bisq repo"
 sudo -H -i -u "${ROOT_USER}" mv "${ROOT_HOME}/${BISQ_REPO_NAME}" "${BISQ_HOME}/${BISQ_REPO_NAME}"
 sudo -H -i -u "${ROOT_USER}" chown -R "${BISQ_USER}:${BISQ_GROUP}" "${BISQ_HOME}/${BISQ_REPO_NAME}"
 
-echo "[*] Installing OpenJDK 10.0.2 from Bisq repo"
-sudo -H -i -u "${ROOT_USER}" "${BISQ_HOME}/${BISQ_REPO_NAME}/scripts/install_java.sh"
-
-echo "[*] Installing Bisq init script"
-sudo -H -i -u "${ROOT_USER}" install -c -o "${ROOT_USER}" -g "${ROOT_GROUP}" -m 644 "${BISQ_HOME}/${BISQ_REPO_NAME}/seednode/bisq.service" "${SYSTEMD_SERVICE_HOME}/bisq.service"
-if [ "${BITCOIN_INSTALL}" = true ];then
-	sudo sed -i -e "s/#Requires=bitcoin.service/Requires=bitcoin.service/" "${SYSTEMD_SERVICE_HOME}/bisq.service"
-	sudo sed -i -e "s/#BindsTo=bitcoin.service/BindsTo=bitcoin.service/" "${SYSTEMD_SERVICE_HOME}/bisq.service"
-fi
-sudo sed -i -e "s/__BISQ_REPO_NAME__/${BISQ_REPO_NAME}/" "${SYSTEMD_SERVICE_HOME}/bisq.service"
-sudo sed -i -e "s!__BISQ_HOME__!${BISQ_HOME}!" "${SYSTEMD_SERVICE_HOME}/bisq.service"
-
-echo "[*] Installing Bisq environment file with Bitcoin RPC credentials"
-sudo -H -i -u "${ROOT_USER}" install -c -o "${ROOT_USER}" -g "${ROOT_GROUP}" -m 644 "${BISQ_HOME}/${BISQ_REPO_NAME}/seednode/bisq.env" "${SYSTEMD_ENV_HOME}/bisq.env"
-sudo sed -i -e "s/__BITCOIN_P2P_HOST__/${BITCOIN_P2P_HOST}/" "${SYSTEMD_ENV_HOME}/bisq.env"
-sudo sed -i -e "s/__BITCOIN_P2P_PORT__/${BITCOIN_P2P_PORT}/" "${SYSTEMD_ENV_HOME}/bisq.env"
-sudo sed -i -e "s/__BITCOIN_RPC_HOST__/${BITCOIN_RPC_HOST}/" "${SYSTEMD_ENV_HOME}/bisq.env"
-sudo sed -i -e "s/__BITCOIN_RPC_PORT__/${BITCOIN_RPC_PORT}/" "${SYSTEMD_ENV_HOME}/bisq.env"
-sudo sed -i -e "s/__BITCOIN_RPC_USER__/${BITCOIN_RPC_USER}/" "${SYSTEMD_ENV_HOME}/bisq.env"
-sudo sed -i -e "s/__BITCOIN_RPC_PASS__/${BITCOIN_RPC_PASS}/" "${SYSTEMD_ENV_HOME}/bisq.env"
-sudo sed -i -e "s!__BISQ_APP_NAME__!${BISQ_APP_NAME}!" "${SYSTEMD_ENV_HOME}/bisq.env"
-sudo sed -i -e "s!__BISQ_HOME__!${BISQ_HOME}!" "${SYSTEMD_ENV_HOME}/bisq.env"
-
-echo "[*] Checking out Bisq ${BISQ_LATEST_RELEASE}"
-sudo -H -i -u "${BISQ_USER}" sh -c "cd ${BISQ_HOME}/${BISQ_REPO_NAME} && git checkout ${BISQ_LATEST_RELEASE}"
-
-echo "[*] Performing Git LFS pull"
-sudo -H -i -u "${BISQ_USER}" sh -c "cd ${BISQ_HOME}/${BISQ_REPO_NAME} && git lfs pull"
-
-echo "[*] Building Bisq from source"
-sudo -H -i -u "${BISQ_USER}" sh -c "cd ${BISQ_HOME}/${BISQ_REPO_NAME} && ./gradlew build -x test < /dev/null" # redirect from /dev/null is necessary to workaround gradlew non-interactive shell hanging issue
-
 echo "[*] Updating systemd daemon configuration"
 sudo -H -i -u "${ROOT_USER}" systemctl daemon-reload
 sudo -H -i -u "${ROOT_USER}" systemctl enable tor.service
-sudo -H -i -u "${ROOT_USER}" systemctl enable bisq.service
 if [ "${BITCOIN_INSTALL}" = true ];then
 	sudo -H -i -u "${ROOT_USER}" systemctl enable bitcoin.service
 fi
@@ -177,16 +139,6 @@ if [ "${BITCOIN_INSTALL}" = true ];then
 	sudo -H -i -u "${ROOT_USER}" tail "${BITCOIN_HOME}/debug.log"
 fi
 
-echo "[*] Adding notes to motd"
-sudo -H -i -u "${ROOT_USER}" sh -c 'echo " " >> /etc/motd'
-sudo -H -i -u "${ROOT_USER}" sh -c 'echo "Bisq Seednode instructions:" >> /etc/motd'
-sudo -H -i -u "${ROOT_USER}" sh -c 'echo "https://github.com/bisq-network/bisq/tree/master/seednode" >> /etc/motd'
-sudo -H -i -u "${ROOT_USER}" sh -c 'echo " " >> /etc/motd'
-sudo -H -i -u "${ROOT_USER}" sh -c 'echo "How to check logs for Bisq-Seednode service:" >> /etc/motd'
-sudo -H -i -u "${ROOT_USER}" sh -c 'echo "sudo journalctl --no-pager --unit bisq" >> /etc/motd'
-sudo -H -i -u "${ROOT_USER}" sh -c 'echo " " >> /etc/motd'
-sudo -H -i -u "${ROOT_USER}" sh -c 'echo "How to restart Bisq-Seednode service:" >> /etc/motd'
-sudo -H -i -u "${ROOT_USER}" sh -c 'echo "sudo service bisq restart" >> /etc/motd'
 
 echo '[*] Done!'
 
